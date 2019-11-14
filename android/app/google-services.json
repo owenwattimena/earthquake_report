@@ -1,0 +1,40 @@
+{
+  "project_info": {
+    "project_number": "42370880555",
+    "firebase_url": "https://earthquake-report-86efb.firebaseio.com",
+    "project_id": "earthquake-report-86efb",
+    "storage_bucket": "earthquake-report-86efb.appspot.com"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:42370880555:android:db0a22518b4c08b308466e",
+        "android_client_info": {
+          "package_name": "com.example.earthquake_report"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "42370880555-c7o12mo6ug11tjplvj6s69n6dgko345a.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCxQm_qouB2H-kO0KPbMJKMY1Cx16PX9gQ"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "42370880555-c7o12mo6ug11tjplvj6s69n6dgko345a.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
