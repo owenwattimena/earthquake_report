@@ -1,12 +1,17 @@
 import 'package:flutter/material.dart';
 
 class ChangePasswordDialog extends StatefulWidget {
+  final void Function(String password, String passwordBaru) onChange;
+
+  const ChangePasswordDialog({Key key, this.onChange}) : super(key: key);
+
   @override
   _ChangePasswordDialogState createState() => _ChangePasswordDialogState();
 }
 
 class _ChangePasswordDialogState extends State<ChangePasswordDialog> {
   final _formKey = GlobalKey<FormState>();
+  TextEditingController _passwordController = new TextEditingController();
   TextEditingController _passwordBaruController = new TextEditingController();
   TextEditingController _ulangPasswordBaruController =
       new TextEditingController();
@@ -25,6 +30,7 @@ class _ChangePasswordDialogState extends State<ChangePasswordDialog> {
               child: Column(
                 children: <Widget>[
                   TextFormField(
+                    controller: _passwordController,
                     obscureText: true,
                     keyboardType: TextInputType.visiblePassword,
                     decoration: InputDecoration(
@@ -100,7 +106,10 @@ class _ChangePasswordDialogState extends State<ChangePasswordDialog> {
                               borderRadius: new BorderRadius.circular(30.0)),
                           onPressed: () {
                             print(_passwordBaruController.text);
-                            if (_formKey.currentState.validate()) {}
+                            if (_formKey.currentState.validate()) {
+                              widget.onChange(_passwordController.text,
+                                  _passwordBaruController.text);
+                            }
                           },
                         ),
                       ],

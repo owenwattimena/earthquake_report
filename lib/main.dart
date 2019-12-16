@@ -1,4 +1,5 @@
-// import 'package:earthquake_report/auth/login.dart';
+import 'package:earthquake_report/auth/login.dart';
+import 'package:earthquake_report/auth/register_success.dart';
 // import 'package:earthquake_report/auth/register_success.dart';
 import 'package:earthquake_report/page/main_page.dart';
 import 'package:flutter/material.dart';
@@ -38,8 +39,14 @@ class MyApp extends StatelessWidget {
           ),
         ),
       ),
+      routes: {
+        "/main": (_) => new MainPage(),
+        "/login": (_) => new Login(),
+        "/registerSuccess": (_) => new RegisterSuccess(),
+      },
       debugShowCheckedModeBanner: false,
-      home: MainPage(),
+      home: Login(),
+      // home: MainPage(),
     );
   }
 }

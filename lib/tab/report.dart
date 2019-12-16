@@ -1,8 +1,17 @@
+import 'dart:async';
+import 'dart:convert';
 import 'dart:io';
 
+import 'package:async/async.dart';
 import 'package:flutter/material.dart';
-// import 'dart:async';
+import 'package:fluttertoast/fluttertoast.dart';
 import 'package:image_picker/image_picker.dart';
+import 'package:http/http.dart' as http;
+import 'package:shared_preferences/shared_preferences.dart';
+import '../config.dart';
+
+import 'package:path_provider/path_provider.dart';
+import 'package:image/image.dart' as img;
 
 class Report extends StatefulWidget {
   @override
@@ -10,20 +19,62 @@ class Report extends StatefulWidget {
 }
 
 class _ReportState extends State<Report> {
+  SharedPreferences sharedPreferences;
   File image;
   double devWidth = 0;
   int selectedRadio;
+  bool laporan = false;
+  final String url = 'earthquake-report-api/request/getReport.php';
+  final String urlSet = 'earthquake-report-api/request/setReport.php';
+  final String urlDel = 'earthquake-report-api/request/deleteReport.php';
+  String tingkatKerusakan = '';
+  String status = '';
 
   @override
   initState() {
     super.initState();
-    selectedRadio = 0;
+    selectedRadio = 1;
+    getReport();
   }
 
   setSelectedRadio(int val) {
+    print(val);
     setState(() {
       selectedRadio = val;
     });
+  }
+
+  getReport() async {
+    sharedPreferences = await SharedPreferences.getInstance();
+    String id = sharedPreferences.getInt('id').toString();
+    // print(id.toString());
+    var response = await http.post(host + url, body: {
+      'id': id,
+    });
+    var data = json.decode(response.body);
+    if (data['status'] == 1) {
+      setState(() {
+        this.laporan = true;
+        tingkatKerusakan = data['report']['tingkat_kerusakan'];
+        status = data['report']['status'];
+      });
+    } else {
+      setState(() {
+        this.laporan = false;
+      });
+    }
+  }
+
+  deleteReport() async {
+    sharedPreferences = await SharedPreferences.getInstance();
+    String id = sharedPreferences.getInt('id').toString();
+    // print(id.toString());
+    var response = await http.post(host + urlDel, body: {
+      'id': id,
+    });
+    var data = json.decode(response.body);
+    _showToast(data['message']);
+    getReport();
   }
 
   pickImage(bool option) async {
@@ -35,8 +86,66 @@ class _ReportState extends State<Report> {
     }
     setState(() {
       image = _image;
-      print(image.path);
+      // print(image.path);
     });
+  }
+
+  uploadImage() async {
+    if (image == null) {
+      _showToast('Gambar Kerusakan tidak boleh kosong!');
+      return;
+    }
+    sharedPreferences = await SharedPreferences.getInstance();
+    String id = sharedPreferences.getInt('id').toString();
+    String nama = sharedPreferences.getString('nik');
+    print(nama);
+
+    final tempDir = await getTemporaryDirectory();
+    final path = tempDir.path;
+
+    img.Image _img = img.decodeImage(image.readAsBytesSync());
+    img.Image smallerImage = img.copyResize(_img, width: 500);
+
+    var compressImg = new File("$path/$nama.jpg")
+      ..writeAsBytesSync(img.encodeJpg(smallerImage, quality: 85));
+
+    setState(() {
+      image = compressImg;
+    });
+
+    var stream = new http.ByteStream(DelegatingStream.typed(image.openRead()));
+    var length = await image.length();
+    var uri = Uri.parse(host + urlSet);
+
+    var request = new http.MultipartRequest("POST", uri);
+    String fileName = image.path.split('/').last;
+    var multipartFile =
+        new http.MultipartFile('image', stream, length, filename: fileName);
+
+    request.fields['id_victim'] = id;
+    request.fields['tingkat_kerusakan'] = selectedRadio.toString();
+    // request.fields['gambar'] = '$nama.jpg';
+    request.files.add(multipartFile);
+
+    var response = await request.send();
+
+    if (response.statusCode == 200) {
+      print("image Uploaded");
+      response.stream.transform(utf8.decoder).listen((value) {
+        var data = json.decode(value);
+        _showToast(data['mesage']);
+        getReport();
+      });
+    } else {
+      print("image Unuploaded");
+    }
+  }
+
+  _showToast(String msg) {
+    Fluttertoast.showToast(
+      msg: '$msg',
+      toastLength: Toast.LENGTH_LONG,
+    );
   }
 
   Future<void> imagePickerDialog() async {
@@ -172,9 +281,9 @@ class _ReportState extends State<Report> {
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                   children: <Widget>[
-                    radio('Kecil', 1),
+                    radio('Ringan', 1),
                     radio('Sedang', 2),
-                    radio('Besar', 3),
+                    radio('Berat', 3),
                   ],
                 ),
                 Padding(
@@ -190,7 +299,9 @@ class _ReportState extends State<Report> {
                         'LAPOR',
                         style: TextStyle(color: Colors.white),
                       ),
-                      onPressed: () {},
+                      onPressed: () {
+                        uploadImage();
+                      },
                     ),
                   ],
                 ),
@@ -198,72 +309,77 @@ class _ReportState extends State<Report> {
                   thickness: 1,
                   height: 50,
                 ),
-                Center(
-                  child: Text(
-                    'Belum ada Laporan',
-                    style: TextStyle(
-                      fontSize: 18,
-                      color: Theme.of(context).accentColor,
-                    ),
-                  ),
-                ),
-                Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: <Widget>[
-                    Text(
-                      'Laporan',
-                      style: Theme.of(context).textTheme.title,
-                    ),
-                    Container(
-                      margin: EdgeInsets.only(top: 8),
-                      padding: EdgeInsets.all(10),
-                      decoration: BoxDecoration(
-                        border: Border(
-                          top: BorderSide(width: 1.0, color: Color(0xff707070)),
-                          left:
-                              BorderSide(width: 1.0, color: Color(0xff707070)),
-                          right:
-                              BorderSide(width: 1.0, color: Color(0xff707070)),
-                          bottom:
-                              BorderSide(width: 1.0, color: Color(0xff707070)),
+                (!laporan)
+                    ? Center(
+                        child: Text(
+                          'Belum ada Laporan',
+                          style: TextStyle(
+                            fontSize: 18,
+                            color: Theme.of(context).accentColor,
+                          ),
                         ),
-                      ),
-                      child: Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      )
+                    : Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
                         children: <Widget>[
-                          Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: <Widget>[
-                              Text(
-                                'Rusak Berat',
-                                style: TextStyle(fontSize: 18),
-                              ),
-                              Text(
-                                'Terkirim',
-                                // style: Theme.of(context).textTheme.overline,
-                                style: TextStyle(
-                                  // color: Color(0xff65679F),
-                                  color: Colors.green[700],
-                                  fontSize: 14,
-                                ),
-                              ),
-                            ],
+                          Text(
+                            'Laporan',
+                            style: Theme.of(context).textTheme.title,
                           ),
                           Container(
-                            child: IconButton(
-                              icon: Icon(
-                                Icons.delete_forever,
-                                color: Colors.red[300],
-                                size: 32,
+                            margin: EdgeInsets.only(top: 8),
+                            padding: EdgeInsets.all(10),
+                            decoration: BoxDecoration(
+                              border: Border(
+                                top: BorderSide(
+                                    width: 1.0, color: Color(0xff707070)),
+                                left: BorderSide(
+                                    width: 1.0, color: Color(0xff707070)),
+                                right: BorderSide(
+                                    width: 1.0, color: Color(0xff707070)),
+                                bottom: BorderSide(
+                                    width: 1.0, color: Color(0xff707070)),
                               ),
-                              onPressed: null,
                             ),
-                          )
+                            child: Row(
+                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                              children: <Widget>[
+                                Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: <Widget>[
+                                    Text(
+                                      '$tingkatKerusakan',
+                                      style: TextStyle(fontSize: 18),
+                                    ),
+                                    Text(
+                                      '$status',
+                                      // style: Theme.of(context).textTheme.overline,
+                                      style: TextStyle(
+                                        // color: Color(0xff65679F),
+                                        color: Colors.green[700],
+                                        fontSize: 14,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                                Container(
+                                  child: IconButton(
+                                    icon: Icon(
+                                      Icons.delete_forever,
+                                      color: Colors.red[300],
+                                      size: 32,
+                                    ),
+                                    onPressed: () {
+                                      deleteReport();
+                                      getReport();
+                                    },
+                                  ),
+                                )
+                              ],
+                            ),
+                          ),
                         ],
-                      ),
-                    ),
-                  ],
-                )
+                      )
               ],
             )
           ],
